@@ -4,7 +4,10 @@
   "description": "A minimal Electron application",
   "main": "main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "pack": "npm run pack:linux  && npm run pack:win",
+    "pack:linux": "electron-packager . serialProxy --platform=linux --out ../release --arch=x64 --overwrite --icon=./public/img/icon.png",
+    "pack:win": "electron-packager . serialProxy --platform=win32 --out ../release --arch=x64 --overwrite --icon=./public/img/icon.png"
   },
   "repository": "https://github.com/electron/electron-quick-start",
   "keywords": [
@@ -17,6 +20,14 @@
   "author": "GitHub",
   "license": "CC0-1.0",
   "devDependencies": {
-    "electron": "^6.0.8"
+    "electron": "^6.0.8",
+    "electron-rebuild": "^1.8.6"
+  },
+  "dependencies": {
+    "@serialport/parser-delimiter": "^2.0.2",
+    "@serialport/parser-inter-byte-timeout": "^1.1.0",
+    "express": "^4.17.1",
+    "hexy": "^0.3.0",
+    "serialport": "^7.1.5"
   }
 }
