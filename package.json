@@ -1,15 +1,21 @@
 {
-  "name": "electron-quick-start",
+  "name": "serialProxy",
   "version": "1.0.0",
-  "description": "A minimal Electron application",
+  "description": "A minimal serialport Proxy",
   "main": "main.js",
-  "scripts": {
-    "start": "electron .",
-    "pack": "npm run pack:linux  && npm run pack:win",
-    "pack:linux": "electron-packager . serialProxy --platform=linux --out ../release --arch=x64 --overwrite --icon=./public/img/icon.png",
-    "pack:win": "electron-packager . serialProxy --platform=win32 --out ../release --arch=x64 --overwrite --icon=./public/img/icon.png --asar"
+  "build": {
+    "appId": "com.bushangbao.www"
   },
-  "repository": "https://github.com/electron/electron-quick-start",
+  "scripts": {
+    "start": "electron . development",
+    "packall": "npm run pack:linux  && npm run pack:win",
+    "pack:linux": "electron-packager . serialProxy --platform=linux --out ../release --arch=x64 --overwrite --icon=./public/img/icon.png",
+    "pack:win": "electron-packager . serialProxy --platform=win32 --out ../release --arch=x64 --overwrite --icon=./public/img/icon.png",
+    "dist": "electron-builder",
+    "postinstall": "electron-builder install-app-deps",
+    "dist-win": "electron-builder --win --ia32"
+  },
+  "repository": "https://github.com/sjzsdu/serialPortProxy",
   "keywords": [
     "Electron",
     "quick",
@@ -17,11 +23,10 @@
     "tutorial",
     "demo"
   ],
-  "author": "GitHub",
+  "author": "Sjzsdu",
   "license": "CC0-1.0",
   "devDependencies": {
-    "electron": "^6.0.8",
-    "electron-rebuild": "^1.8.6"
+    "electron": "^6.0.8"
   },
   "dependencies": {
     "@serialport/parser-inter-byte-timeout": "^1.1.0",
