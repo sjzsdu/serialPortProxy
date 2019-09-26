@@ -25,6 +25,13 @@ npm start
 npm pack
 ```
 
+## 功能
++ 写入卡号并返回
+js访问 $.ajax('http://localhost:9527/rfid/bind')
+访问url参数中第一个代表要读取的串口类别，目前只有rfid感应器，其他电子秤自己实现
+第二个参数是要执行的操作
+返回rfids的代码
+
 ## 其他
 + 本代码借鉴 [基于electron的桌面串口工具](https://github.com/PowerDos/electron-serialport)，感谢！
 + 感谢electron和node-serialport项目

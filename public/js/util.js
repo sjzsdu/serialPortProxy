@@ -41,10 +41,11 @@ const util = {
     },
 
     intToHex(intArr){
+        if (intArr.length < 20)
+            return []
         const sarr = []
         const len = intArr.length
         const n = Math.ceil(len / 24);
-        console.log('初始化返回的数据', intArr,n,len)
         for(let i =0; i<n; i++){
             let one = []
             for(let j=8; j<20;j++){
@@ -59,6 +60,15 @@ const util = {
             sarr.push(one.join(''))
         }
         return sarr;
+    },
+    ///rfid?type=bind
+    resolveUrl(url){
+        // const reg = /\/(\w+)\?(\w+)=(\w+)/
+        const reg = /\/(\w+)\/(\w+)/
+        const res = reg.exec(url)
+        if(!res)
+            return false
+        return [res[1],res[2]]
     }
 }
 

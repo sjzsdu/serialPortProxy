@@ -27,9 +27,6 @@
                     </select>
                 </div>
             </div>
-            <!-- <div class="submit-data">
-                <button class="btn btn-primary btn-block btn-submit">确定</button>
-            </div> -->
         </div>
         <div class="content-box">
             <div class="receive-box">
@@ -57,36 +54,51 @@
         </div>
     </div>
 </body>
-<script>
+<script type="module">
     window.$ = window.jQuery = require('./public/js/jquery.min.js');
     let serialport = require('serialport');
-    const Delimiter = require('@serialport/parser-delimiter');
-    const InterByteTimeout = require('@serialport/parser-inter-byte-timeout')
-    const util = require('./public/js/util.js')
-
-    // const express = require('express')
-    // // 开启服务
-    // const app = express()
-    // app.get('/',function (req, res) {
-    //     res.json('hello world');
-    // })
+    const InterByteTimeout = require('@serialport/parser-inter-byte-timeout');
+    const util = require('./public/js/util.js');
+    const sptool = require('./public/js/serialport.js');
 
     const http  = require('http')
     const server = http.createServer((req,res) => {
-        console.log('res',res)
+        console.log('req',req)
         res.setHeader("Access-Control-Allow-Origin", "*")
         res.setHeader("Access-Control-Allow-Headers", "Content-Type")
         res.setHeader("content-type", "application/json")
-        createPort().then(rfids => {
-            res.end(rfids.join('|'));
-        })
+        const reg = /\/(\w+)\/(\w+)/
+        const match = reg.exec(req.url)
+        console.log('match',match)
+        if(match){
+            const [cate,type] = [match[1],match[2]]
+            if(cate === 'rfid'){
+                handleRFID(type).then(rfids => {
+                    console.log('request return',rfids)
+                    res.end(rfids.join('|'));
+                }).catch(err => {
+                    // res.statusCode=404
+                    res.end(err)
+                }).finally(()=>{
+                    port.close()
+                    port = null
+                });
+            }
+        } else {
+            res.end('error request')
+        }
+        // 更多串口
     })
     server.listen(9527);
 
 
     let port = null;
+    let COM = null;
+    let BaudRate = 115200;
     let parser = null;
+    let rfidSet = new Set();
 
+    // 初始化串口和波特率供选择
     serialport.list((err, ports) => {
         for (let item of ports) {
             $('.com').append(`<option>${item.comName}</option>`)
@@ -97,69 +109,62 @@
         $('.baud').append(`<option>${item}</option>`)
     })
 
-
-    function createPort(){
-        
-        const promise = new Promise(function(resolve,reject){
-            if(port){
-                port.close()
-                port = null
+    // 准备串口
+    function preparePort(){
+        return new Promise(function(resolve,reject){
+            if(!port){
+                COM = $('#disabledSelect option:selected').text();
+                BaudRate = $('#baudSelect option:selected').text();
+                port = new serialport(COM, {
+                    baudRate: parseInt(BaudRate)
+                });
+                port.on('open', function() {
+                    $('.receive-windows').text(`打开串口: ${COM}, 波特率: ${BaudRate}`);
+                    $('.receive-windows').append('<br/>=======================================<br/>');
+                })
+                // 如果发生错误
+                port.on('error', err => {
+                    $('.receive-windows').append(err.toString());
+                    reject(err);
+                });
             }
-            let COM = $('#disabledSelect option:selected').text();
-            let BaudRate = $('#baudSelect option:selected').text();
-            console.log('端口和波特率',COM,BaudRate);
-            port = new serialport(COM, {
-                baudRate: parseInt(BaudRate)
-            });
-
-            parser = port.pipe(new InterByteTimeout({interval:5}))
-        
-            parser.on('data',(data) => {
-                const rfids = util.intToHex(data)
-                $('.receive-windows').append(rfids.join(',') + '</br>');
-                port.close();
-                port = null;
-                resolve(rfids)
-            })
-
-            port.on('open', function() {
-                $('.receive-windows').text(`打开串口: ${COM}, 波特率: ${BaudRate}`);
-                $('.receive-windows').append('<br/>=======================================<br/>');
-            })
-
-            // 如果发生错误
-            port.on('error', err => {
-                $('.receive-windows').append(err.toString());
-                reject(err);
-            });
-            sendDataPort()
+            resolve(port)
         })
-        return promise 
     }
 
-    function sendDataPort(){
-        var sendData = $('.input-send-data').val();
-        if (port != {} && port != null) {
-            const buf = new Buffer([0xBB,0x00,0x22,0x00,0x00,0x22,0x7E])
-            port.write(buf, function(err){
-                if (err) {
-                    return console.log('Error on write: ', err.message)
+    function handleRFID(type){
+        let sp = null;
+        return new Promise(function(resolve,reject){
+            preparePort().then(port => {
+                parser = port.pipe(new InterByteTimeout({interval:5}))
+                switch(type){
+                    case 'single':
+                        sp = sptool.singleRead(port,parser)
+                        break;
+                    case 'multi':
+                        sp = sptool.multiRead(port,parser,100)
+                        break;
+                    case 'bind': 
+                        sp = sptool.bind(port,parser)
+                        break;
                 }
-                console.log('message written',err)
-            });
-        }
+                sp.then(rfids => {
+                    console.log('rfid result',rfids)
+                    resolve(rfids)
+                }).catch(err => {reject(err)})
+            })
+        })
     }
-
-    // 开启端口
-    $('.btn-submit').click((data) => {
-        createPort()
-    });
 
     // 点击发送信息
     $('.btn-send').click(() => {
-        createPort().then(rfids => {
-            console.log('rfids',rfids)
-        })
+        handleRFID('multi').then(rfids => {
+            console.log('request return',rfids)
+            $('.receive-windows').append(rfids.join(',') + '</br>');
+        }).catch(err => {
+            console.log(err);
+            $('.receive-windows').append(err + '</br>');
+        });
     })
 
     // 清空信息
